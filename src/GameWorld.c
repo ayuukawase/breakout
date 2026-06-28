@@ -62,7 +62,16 @@ GameWorld *createGameWorld(void){
     gw->alvos = (Alvo*) malloc(sizeof(Alvo) * gw->lin * gw->col);
 
     Color cores[10] = {
-        BLUE, RED, BLUE, RED, BLUE, RED, BLUE, RED, BLUE, RED
+        GetColor(0xCC2F00FF), // #CC2F00
+        GetColor(0xDB6600FF), // #DB6600
+        GetColor(0xE39E00FF), // #E39E00
+        GetColor(0x76B80DFF), // #76B80D
+        GetColor(0x007668FF), // #007668
+        GetColor(0x006486FF), // #006486
+        GetColor(0x007CB5FF), // #007CB5
+        GetColor(0x465AB2FF), // #465AB2
+        GetColor(0x6D47B1FF), // #6D47B1
+        GetColor(0x873B9CFF)  // #873B9C
     }; //{0, 255, 0, 255}rgb ou GetColor(0x0099ccff)
     //  (muda a cor dos alvos de maneira individual)
 
@@ -123,7 +132,7 @@ void drawGameWorld(GameWorld *gw){
     desenharBolinha(&gw->bolinha);
     desenharAlvos(gw->alvos, gw->lin * gw->col);
 
-    DrawText(TextFormat("Pontuação: %04d", gw->pontuacao), 20, 20, 25, BLUE);
+    DrawText(TextFormat("Pontuação: %04d", gw->pontuacao), 20, 20, 25, WHITE);
     //texto, pos x, pos y, tamanho, cor
 
     EndDrawing();
