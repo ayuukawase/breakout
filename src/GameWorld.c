@@ -21,7 +21,8 @@
 #include "Jogador.h"
 #include "ResourceManager.h"
 
-void resolverColisaoBolinhaAlvos(Bolinha *b, Alvo * alvos, int quantidade);
+void resolverColisaoBolinhaAlvos(Bolinha *b, Alvo * alvos, int quantidade, int *pontuacao);
+void resolverColisaoBolinhaJogador(Bolinha *b, Jogador *j);
 
 /**
  * @brief Creates a dinamically allocated GameWorld struct instance.
@@ -29,6 +30,7 @@ void resolverColisaoBolinhaAlvos(Bolinha *b, Alvo * alvos, int quantidade);
 GameWorld *createGameWorld(void){
 
     GameWorld *gw = (GameWorld*) malloc(sizeof(GameWorld));
+    gw->pontuacao = 0;
 
     int largura = 150;
     int altura = 20;
@@ -94,6 +96,7 @@ GameWorld *createGameWorld(void){
  * @brief Destroys a GameWindow object and its dependecies.
  */
 void destroyGameWorld(GameWorld *gw){
+    free(gw->alvos); //libera os alvos antes de liberar o gw, nhe só boa pratica
     free(gw);
 }
 
@@ -104,7 +107,9 @@ void updateGameWorld(GameWorld *gw, float delta){
     entradaJogador(&gw->jogador);
     atualizarJogador(&gw->jogador, delta);
     atualizarBolinha(&gw->bolinha, delta);
-    resolverColisaoBolinhaAlvos(&gw->bolinha, gw->alvos, gw->lin * gw->col);
+
+    resolverColisaoBolinhaAlvos(&gw->bolinha, gw->alvos, gw->lin * gw->col, &gw->pontuacao);
+    resolverColisaoBolinhaJogador(&gw->bolinha, &gw->jogador);
 }
 
 /**
@@ -118,16 +123,39 @@ void drawGameWorld(GameWorld *gw){
     desenharBolinha(&gw->bolinha);
     desenharAlvos(gw->alvos, gw->lin * gw->col);
 
+    DrawText(TextFormat("Pontuação: %04d", gw->pontuacao), 20, 20, 25, BLUE);
+    //texto, pos x, pos y, tamanho, cor
+
     EndDrawing();
 }
 
-void resolverColisaoBolinhaAlvos(Bolinha *b, Alvo * alvos, int quantidade){
+void resolverColisaoBolinhaAlvos(Bolinha *b, Alvo * alvos, int quantidade, int *pontuacao){
     for(int i = 0; i < quantidade ; i++){
         Alvo *alvo = &alvos[i];
         if(alvo->hp > 0 && CheckCollisionCircleRec(b->centro, b->raio, alvo->ret)){
             alvo->hp--;
+            *pontuacao += 10; //10p a cada alvo
+
+
             b->centro.y = alvo->ret.y + alvo->ret.height + b->raio;
             b->vel.y = fabs(b->vel.y);
+            break; //um alvo por vez
+        }
+    }
+}
+
+void resolverColisaoBolinhaJogador(Bolinha *b, Jogador *j){
+    if(CheckCollisionCircleRec(b->centro, b->raio, j->ret)){
+        if(b->vel.y > 0){
+            b->centro.y = j->ret.y - b->raio;
+            b->vel.y = -fabs(b->vel.y); //faz a bolinha subir
+
+            //muda a direção da bolinha dependendo de onde ela bateu no jogador
+            float centroJogador = j->ret.x + j->ret.width / 2.0f;
+            float distanciaCentro = b->centro.x - centroJogador;
+
+            //muda a velx de acordo com a distancia do centro do j... frescurinhas
+            b->vel.x = (distanciaCentro / (j->ret.width / 2.0f)) * 250.0f;
         }
     }
 }

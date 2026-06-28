@@ -17,6 +17,7 @@ typedef struct GameWorld{
     Alvo *alvos;
     int lin;
     int col;
+    int pontuacao;
 } GameWorld;
 
 /**
