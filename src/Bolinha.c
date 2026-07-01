@@ -16,7 +16,7 @@ void atualizarBolinha(Bolinha *bolinha, float delta){
     if(bolinha->centro.y - bolinha->raio <= 0){
         bolinha->centro.y = bolinha->raio;
         bolinha->vel.y = -bolinha->vel.y;
-    }else if(bolinha->centro.y + bolinha->raio >=GetScreenHeight()){
+    //else if(bolinha->centro.y + bolinha->raio >=GetScreenHeight()){
         bolinha->centro.y = GetScreenHeight() - bolinha->raio;
         bolinha->vel.y = -bolinha->vel.y;
     }

@@ -23,6 +23,7 @@
 
 void resolverColisaoBolinhaAlvos(Bolinha *b, Alvo * alvos, int quantidade, int *pontuacao);
 void resolverColisaoBolinhaJogador(Bolinha *b, Jogador *j);
+bool verificaVitoria(Alvo *alvos, int quantidade);
 
 /**
  * @brief Creates a dinamically allocated GameWorld struct instance.
@@ -31,6 +32,8 @@ GameWorld *createGameWorld(void){
 
     GameWorld *gw = (GameWorld*) malloc(sizeof(GameWorld));
     gw->pontuacao = 0;
+    gw->vidas = 3;
+    gw->emJogo = false;
 
     int largura = 150;
     int altura = 20;
@@ -113,12 +116,43 @@ void destroyGameWorld(GameWorld *gw){
  * @brief Reads user input and updates the state of the game.
  */
 void updateGameWorld(GameWorld *gw, float delta){
-    entradaJogador(&gw->jogador);
-    atualizarJogador(&gw->jogador, delta);
-    atualizarBolinha(&gw->bolinha, delta);
+    //se tiver vidas e se nao tiver vencido ainda
+    if(gw->vidas > 0 && !verificaVitoria(gw->alvos, gw->lin * gw->col)){        
+        if(!gw->emJogo){
+            //coloca no centro
+            gw->bolinha.centro.x = gw->jogador.ret.x + gw->jogador.ret.width / 2.0f;
+            gw->bolinha.centro.y = gw->jogador.ret.y - gw->bolinha.raio - 5;
 
-    resolverColisaoBolinhaAlvos(&gw->bolinha, gw->alvos, gw->lin * gw->col, &gw->pontuacao);
-    resolverColisaoBolinhaJogador(&gw->bolinha, &gw->jogador);
+            if(IsKeyPressed(KEY_SPACE)){ //iniciado somente apos o space
+                gw->emJogo = true;
+            }
+        }else{
+            entradaJogador(&gw->jogador);
+            atualizarJogador(&gw->jogador, delta);
+            atualizarBolinha(&gw->bolinha, delta);
+
+            resolverColisaoBolinhaAlvos(&gw->bolinha, gw->alvos, gw->lin * gw->col, &gw->pontuacao);
+            resolverColisaoBolinhaJogador(&gw->bolinha, &gw->jogador);
+
+            if(gw->bolinha.centro.y + gw->bolinha.raio >= GetScreenHeight() - 5){
+                gw->vidas--; //perde vida haha
+                gw->emJogo = false; //space de noooovo
+
+                if(gw->vidas > 0){
+                    // reseta j para o centro
+                    gw->jogador.ret.x = GetScreenWidth() / 2.0f - gw->jogador.ret.width / 2.0f;
+
+                    //reseta bolinha tambem
+                    gw->bolinha.centro.x = gw->jogador.ret.x + gw->jogador.ret.width / 2.0f;
+                    gw->bolinha.centro.y = gw->jogador.ret.y - gw->bolinha.raio - 5;
+
+                    //reseta vel
+                    gw->bolinha.vel.x = 200;
+                    gw->bolinha.vel.y = -200;
+                }
+            }
+        }
+    }
 }
 
 /**
@@ -126,29 +160,99 @@ void updateGameWorld(GameWorld *gw, float delta){
  */
 void drawGameWorld(GameWorld *gw){
     BeginDrawing();
-    ClearBackground(BLACK);
+    ClearBackground(BLACK); //mudar a cor...? mmmh
 
-    desenharJogador(&gw->jogador);
-    desenharBolinha(&gw->bolinha);
-    desenharAlvos(gw->alvos, gw->lin * gw->col);
+    bool venceu = verificaVitoria(gw->alvos, gw->lin * gw->col);
 
-    DrawText(TextFormat("Pontuação: %04d", gw->pontuacao), 20, 20, 25, WHITE);
-    //texto, pos x, pos y, tamanho, cor
+    if(gw->vidas > 0 && !venceu){
+        desenharJogador(&gw->jogador);
+        desenharBolinha(&gw->bolinha);
+        desenharAlvos(gw->alvos, gw->lin * gw->col);
 
+        DrawText(TextFormat("Pontuação: %04d", gw->pontuacao), 20, 20, 25, WHITE);
+        //texto, pos x, pos y, tamanho, cor
+        DrawText(TextFormat("Vidas: %d", gw->vidas), GetScreenWidth() - 150, 20, 25, WHITE);
+
+        if(!gw->emJogo){
+            int start = 30;
+            int larguraStart = MeasureText("Pressione space para começar", start);
+            DrawText("Pressione space para começar", GetScreenWidth() / 2 - larguraStart / 2, GetScreenHeight() / 2 + 100, start, LIGHTGRAY);
+        }
+    }else if(venceu){
+        //telinha de vitoria yipiie
+        int ganhou = 50;
+        int larguraGanhou = MeasureText("Victory yaay", ganhou);
+        DrawText("Victory yaay", GetScreenWidth() / 2 - larguraGanhou / 2, GetScreenHeight() / 2 - 80, ganhou, GREEN);
+
+        int finalScore = 30;
+        char textoFinalScore[50];
+        sprintf(textoFinalScore, "Pontuação Final: %04d", gw->pontuacao);
+        int larguraFinalScore = MeasureText(textoFinalScore, finalScore);
+        DrawText(textoFinalScore, GetScreenWidth() / 2 - larguraFinalScore / 2, GetScreenHeight() / 2, finalScore, LIGHTGRAY);
+
+        int sair = 20;
+        int larguraSair = MeasureText("Pressione ESC para sair", sair);
+        DrawText("Pressione ESC para sair", GetScreenWidth() / 2 - larguraSair / 2, GetScreenHeight() / 2 + 60, sair, LIGHTGRAY);
+    }else{
+        //telinha de game over
+        int titulo = 50;
+        int larguraTitulo = MeasureText("GAME OVER =[", titulo);
+        DrawText("GAME OVER =[", GetScreenWidth() / 2 - larguraTitulo / 2, GetScreenHeight() / 2 - 80, titulo, RED);
+
+        int score = 30;
+        char textoScore[50];
+        sprintf(textoScore, "Sua Pontuação Final: %04d", gw->pontuacao);
+        int larguraScore = MeasureText(textoScore, score);
+        DrawText(textoScore, GetScreenWidth() / 2 - larguraScore / 2, GetScreenHeight() / 2, score, LIGHTGRAY);
+
+        int sair = 20;
+        int larguraSair = MeasureText("Pressione ESC para sair", sair);
+        DrawText("Pressione ESC para sair", GetScreenWidth() / 2 - larguraSair / 2, GetScreenHeight() / 2 + 60, sair, LIGHTGRAY);
+    }
+    
     EndDrawing();
 }
 
-void resolverColisaoBolinhaAlvos(Bolinha *b, Alvo * alvos, int quantidade, int *pontuacao){
-    for(int i = 0; i < quantidade ; i++){
+void resolverColisaoBolinhaAlvos(Bolinha *b, Alvo *alvos, int quantidade, int *pontuacao){
+    for(int i = 0; i < quantidade; i++){
         Alvo *alvo = &alvos[i];
+        
+        // só ve colisão se tiver vida
         if(alvo->hp > 0 && CheckCollisionCircleRec(b->centro, b->raio, alvo->ret)){
-            alvo->hp--;
-            *pontuacao += 10; //10p a cada alvo
+            
+            alvo->hp--; //perdeu vida haha
+            *pontuacao += 10; //10p por alvo
 
+            float maisProximoX = fmaxf(alvo->ret.x, fminf(b->centro.x, alvo->ret.x + alvo->ret.width));
+            float maisProximoY = fmaxf(alvo->ret.y, fminf(b->centro.y, alvo->ret.y + alvo->ret.height));
 
-            b->centro.y = alvo->ret.y + alvo->ret.height + b->raio;
-            b->vel.y = fabs(b->vel.y);
-            break; //um alvo por vez
+            float distanciaX = b->centro.x - maisProximoX;
+            float distanciaY = b->centro.y - maisProximoY;
+
+            if (fabsf(distanciaX) > fabsf(distanciaY)) {
+                // batendo lateral
+                if (distanciaX > 0) {
+                    // batendo na direita
+                    b->centro.x = alvo->ret.x + alvo->ret.width + b->raio;
+                    b->vel.x = fabsf(b->vel.x);
+                } else {
+                    // batendo no esquedo
+                    b->centro.x = alvo->ret.x - b->raio;
+                    b->vel.x = -fabsf(b->vel.x);
+                }
+            } else {
+                // bater cima e baixo
+                if (distanciaY > 0) {
+                    // manda pra baixo
+                    b->centro.y = alvo->ret.y + alvo->ret.height + b->raio;
+                    b->vel.y = fabsf(b->vel.y);
+                } else {
+                    // manda pra cima
+                    b->centro.y = alvo->ret.y - b->raio;
+                    b->vel.y = -fabsf(b->vel.y);
+                }
+            }
+            break; 
         }
     }
 }
@@ -167,4 +271,13 @@ void resolverColisaoBolinhaJogador(Bolinha *b, Jogador *j){
             b->vel.x = (distanciaCentro / (j->ret.width / 2.0f)) * 250.0f;
         }
     }
+}
+
+bool verificaVitoria(Alvo *alvos, int quantidade){
+    for(int i = 0; i < quantidade; i++){
+        if(alvos[i].hp > 0){
+            return false; //se ainda tem alvos
+        }
+    }
+    return true; //cabouuu
 }

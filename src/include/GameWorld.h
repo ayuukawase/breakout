@@ -18,6 +18,8 @@ typedef struct GameWorld{
     int lin;
     int col;
     int pontuacao;
+    int vidas;
+    bool emJogo;
 } GameWorld;
 
 /**
